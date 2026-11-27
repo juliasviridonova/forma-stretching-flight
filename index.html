@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Студия растяжки «Полёт» — запись на пробное занятие</title>
+<style>
+  /* ===== Базовые стили ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    color: #222;
+    line-height: 1.5;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+  /* ===== Шапка ===== */
+  header {
+    background: #5b3ea8;
+    color: #fff;
+    padding: 60px 0 80px;
+    text-align: center;
+  }
+  header h1 { font-size: 32px; margin-bottom: 12px; }
+  header p { font-size: 18px; opacity: .9; }
+
+  /* ===== Секция с формой ===== */
+  .form-section { padding: 50px 0; }
+  .form-card {
+    background: #f7f5ff;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .form-card h2 { margin-bottom: 8px; font-size: 22px; }
+  .form-card p  { margin-bottom: 20px; color: #555; font-size: 15px; }
+
+  /* Поля формы */
+  .form-field { margin-bottom: 16px; }
+  .form-field label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  .form-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .form-field input:focus { border-color: #5b3ea8; }
+
+  /* Состояние ошибки — рамка красная + подсказка */
+  .form-field.error input { border-color: #e03131; }
+  .field-hint {
+    display: none;
+    color: #e03131;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .form-field.error .field-hint { display: block; }
+
+  /* Кнопка */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: #5b3ea8;
+    color: #fff;
+    font-size: 17px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .btn:hover { background: #4a318f; }
+  .btn:disabled { background: #a99ccb; cursor: not-allowed; }
+
+  /* Сообщение об успехе / ошибке отправки */
+  .form-status {
+    display: none;
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+  }
+  .form-status.success { display: block; background: #e6f9ed; color: #1a7f4e; }
+  .form-status.fail    { display: block; background: #ffe9e9; color: #b02626; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>Студия растяжки «Полёт»</h1>
+    <p>Шпагат с нуля за 3 месяца. Первое занятие — бесплатно.</p>
+  </div>
+</header>
+
+<section class="form-section">
+  <div class="container">
+    <div class="form-card">
+      <h2>Записаться на пробное занятие</h2>
+      <p>Оставьте заявку — перезвоним в течение дня и подберём удобное время.</p>
+
+      <!-- novalidate: отключаем стандартную валидацию браузера,
+           чтобы все проверки выполнял наш JS -->
+      <form id="signup-form" novalidate>
+
+        <div class="form-field">
+          <label for="name">Ваше имя</label>
+          <input type="text" id="name" name="name" placeholder="Как к вам обращаться?">
+          <div class="field-hint">Пожалуйста, укажите имя</div>
+        </div>
+
+        <div class="form-field">
+          <label for="phone">Телефон</label>
+          <input type="tel" id="phone" name="phone" placeholder="+7 (___) ___-__-__">
+          <div class="field-hint">Введите номер полностью: 11 цифр</div>
+        </div>
+
+        <button type="submit" class="btn" id="submit-btn">Записаться бесплатно</button>
+
+        <div class="form-status" id="form-status"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ============================================================
+   ВАЖНО: сюда вставь свои значения.
+   BOT_TOKEN — 9080724267:AAGWYqVnpYw3PcBcaE7M5WnuRjNE5UoAQ1A
+   CHAT_ID   —  1055095230
+   Внимание: токен в коде на GitHub виден всем, поэтому
+   для учебного проекта заведи ОТДЕЛЬНОГО бота,
+   а не используй личного.
+============================================================ */
+const BOT_TOKEN = "9080724267:AAGWYqVnpYw3PcBcaE7M5WnuRjNE5UoAQ1A";
+const CHAT_ID   = "1055095230";
+
+const form  = document.getElementById("signup-form");
+const nameInput  = document.getElementById("name");
+const phoneInput = document.getElementById("phone");
+const submitBtn  = document.getElementById("submit-btn");
+const statusBox  = document.getElementById("form-status");
+
+/* ---------- 1. Маска ввода телефона ----------
+   Пока пользователь печатает, приводим значение
+   к виду: +7 (912) 345-67-89                                        */
+phoneInput.addEventListener("input", () => {
+  // оставляем только цифры
+  let digits = phoneInput.value.replace(/\D/g, "");
+
+  // если номер начинается не с 7, дописываем её впереди
+  if (digits.startsWith("8")) digits = "7" + digits.slice(1);
+  if (!digits.startsWith("7")) digits = "7" + digits;
+  digits = digits.slice(0, 11); // максимум 11 цифр
+
+  // строим маску по частям
+  let result = "+7";
+  if (digits.length > 1) result += " ("  + digits.slice(1, 4);
+  if (digits.length > 4) result += ") "  + digits.slice(4, 7);
+  if (digits.length > 7) result += "-"   + digits.slice(7, 9);
+  if (digits.length > 9) result += "-"   + digits.slice(9, 11);
+
+  phoneInput.value = result;
+});
+
+/* ---------- 2. Валидация формы ---------- */
+function validate() {
+  let valid = true;
+
+  // имя: не пустое и длиннее 1 символа
+  if (nameInput.value.trim().length < 2) {
+    nameInput.closest(".form-field").classList.add("error");
+    valid = false;
+  } else {
+    nameInput.closest(".form-field").classList.remove("error");
+  }
+
+  // телефон: после маски должно остаться ровно 11 цифр
+  const phoneDigits = phoneInput.value.replace(/\D/g, "");
+  if (phoneDigits.length !== 11) {
+    phoneInput.closest(".form-field").classList.add("error");
+    valid = false;
+  } else {
+    phoneInput.closest(".form-field").classList.remove("error");
+  }
+
+  return valid;
+}
+
+/* ---------- 3. Отправка заявки в Telegram ---------- */
+form.addEventListener("submit", async (event) => {
+  event.preventDefault(); // отменяем перезагрузку страницы
+
+  if (!validate()) return;
+
+  // блокируем кнопку, чтобы не отправить заявку дважды
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Отправляем...";
+
+  const message =
+    "Новая заявка с сайта «Полёт»\n" +
+    "Имя: "     + nameInput.value.trim() + "\n" +
+    "Телефон: " + phoneInput.value;
+
+  try {
+    const response = await fetch(
+      "https://api.telegram.org/bot" + BOT_TOKEN + "/sendMessage",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.ok) {
+      statusBox.className = "form-status success";
+      statusBox.textContent = "Заявка отправлена! Мы вам перезвоним";
+      form.reset();
+    } else {
+      throw new Error("Telegram API ответил ошибкой");
+    }
+
+  } catch (error) {
+    // если интернет пропал или токен неверный — сообщаем об этом
+    statusBox.className = "form-status fail";
+    statusBox.textContent = "Что-то пошло не так. Позвоните нам: +7 (900) 000-00-00";
+  } finally {
+    // разблокируем кнопку в любом случае
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Записаться бесплатно";
+  }
+});
+</script>
+
+</body>
+</html>
